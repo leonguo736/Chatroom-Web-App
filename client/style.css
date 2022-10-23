@@ -1,7 +1,7 @@
 /* use media queuries for resizing */
 @media screen and (min-width: 1024px) {
     #app-view {
-        background-color: aqua;
+        /* background-color: aqua; */
         width: 80%;
         margin: auto;
     }
@@ -9,7 +9,7 @@
 
 @media screen and (max-width: 1024px) and (min-width: 768px) {
     #app-view {
-        background-color: purple;
+        /* background-color: purple; */
         width: 90%;
         margin: auto;
     }
@@ -17,7 +17,7 @@
 
 @media screen and (max-width: 768px) {
     #app-view {
-        background-color: red;
+        /* background-color: red; */
         width: 100%;
         margin: auto;
     }
@@ -115,6 +115,7 @@ body {
     background-color: rgb(230, 230, 230);
     border: 1px solid gray;
     height: 50px;
+    width: 98%;
     line-height: 50px;
     list-style: none;
 }
@@ -155,6 +156,15 @@ body {
 .message-text {
     display: flex;
     flex-direction: column;
+}
+
+.textarea {
+    display: flex;
+    align-self: center;
+}
+.control-button {
+    display: flex;
+    justify-content: center;
 }
 
 /* profile page */
