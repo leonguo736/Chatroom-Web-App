@@ -88,11 +88,11 @@ broker.on('connection', (ws) => {
 		var parsed = JSON.parse(data);
 		// console.log("broker: data is " + parsed);
 
-		broker.clients.forEach((client) => {
+		for (client of broker.clients.values()) {
 			if (client != ws) {
 				client.send(JSON.stringify(parsed));
 			}
-		});
+		}
 		messages[parsed.roomId].push(parsed);
 	});
 
