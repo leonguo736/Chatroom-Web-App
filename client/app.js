@@ -26,9 +26,24 @@ function main() {
     // 6. A)
     var lobby = new Lobby();
 
+    /**
+     * assignment 3 task 4
+     */
+    var socket = new WebSocket("ws://localhost:3000");
+    socket.addEventListener("message", (e)=> {
+        console.log("socket: e is " + e);
+        var parsed = JSON.parse(e["data"]);
+        // var parsed = JSON.stringify(e["data"]);
+        // socket.send(parsed);
+        // console.log("socket: " + parsed.roomId);
+
+        var room = lobby.getRoom(parsed.roomId);
+        room.addMessage(parsed.username, parsed.text);
+    });
+
     // 3. D)
     var lobbyView = new LobbyView(lobby);
-    var chatView = new ChatView();
+    var chatView = new ChatView(socket);
     var profileView = new ProfileView();
 
     /* 
@@ -75,7 +90,33 @@ function main() {
 
     // 2. C) 
     renderRoute();
-    cpen322.export(arguments.callee, { renderRoute, lobbyView, chatView, profileView, lobby });
+    cpen322.export(arguments.callee, { renderRoute, lobbyView, chatView, profileView, lobby, refreshLobby, socket });
+
+    // assignment 3 start
+    function refreshLobby() {
+        Service.getAllRooms().then((result) => {
+            console.log("refreshing the lobby");
+            for (var i = 0; i < result.length; i++) {
+                var room = result[i];
+                // console.log("room id is " + room.id);
+                var existingRoom = lobby.getRoom(room.id);
+                // console.log("key is " + existingRoom);
+
+                if (existingRoom == -1) { // room does not exist. 
+                    // console.log("creating new room with id " + room.id);
+                    lobby.addRoom(room.id, room.name, room.image, room.messages);
+                }
+                else {
+                    // console.log("updating room with id " + existingRoom.id );
+                    existingRoom.name = room.name;
+                    existingRoom.image = room.image;
+                }
+            }
+        });
+    }
+    refreshLobby();
+    var ret = setInterval(refreshLobby, 6000);
+    // if (flag) clearInterval(ret);
 }
 
 /* 
@@ -122,8 +163,14 @@ class LobbyView {
         this.redrawList();
         // 6. D)
         var input = this.inputElem;
-        this.buttonElem.addEventListener("click", function() {
-            lobby.addRoom(input.value, input.value);
+        this.buttonElem.addEventListener("click", function() { // click event here
+            console.log("LobbyView: click event triggered");
+            var result = Service.addRoom({name: input.value, image: "/assets/everyone-icon.png"});
+            result.then(value=> {
+                lobby.addRoom(value.id, value.name, value.image);
+                console.log("LobbyView: " + value.id + value.name + value.image);
+            });
+            
             input.value = "";
         });
         // 7. B)
@@ -170,7 +217,7 @@ class LobbyView {
 }
 
 class ChatView {
-    constructor() {
+    constructor(socket) {
         this.elem = createDOM(
             `<div id="page-view">
                 <div class="content">
@@ -209,6 +256,8 @@ class ChatView {
                 this.sendMessage();
             }
         });
+        //assignment 3 
+        this.socket = socket;
     }
     // 8. C) COME BACK LATER HOPEFULLY IT WORKS THEN
     sendMessage() {
@@ -216,6 +265,13 @@ class ChatView {
         // this.room is still null, so when you try to access this.room.addMessage, it is also null!
         this.room.addMessage(profile.username, text);
         this.inputElem.value = "";
+
+        // assignment 3 task4
+        var jsonString = new Object;
+        jsonString.roomId = this.room.id;
+        jsonString.username = profile.username;
+        jsonString.text = text;
+        this.socket.send(JSON.stringify(jsonString));
     }
     // 8. E)
     setRoom(room) {
@@ -327,15 +383,16 @@ class Room {
 // 5. C)
 class Lobby {
     constructor() { // 5. C)
-        this.rooms = [];
-        var room1 = new Room("1", "room1");
-        var room2 = new Room("2", "room2");
-        var room3 = new Room("3", "room3");
-        var room4 = new Room("4", "room4");
-        this.rooms[room1.id] = room1;
-        this.rooms[room2.id] = room2;
-        this.rooms[room3.id] = room3;
-        this.rooms[room4.id] = room4;
+        // this.rooms = [];
+        // var room1 = new Room("1", "room1");
+        // var room2 = new Room("2", "room2");
+        // var room3 = new Room("3", "room3");
+        // var room4 = new Room("4", "room4");
+        // this.rooms[room1.id] = room1;
+        // this.rooms[room2.id] = room2;
+        // this.rooms[room3.id] = room3;
+        // this.rooms[room4.id] = room4;
+        this.rooms = new Object;
     }
     // 5. D)
     getRoom(roomId) {
@@ -345,6 +402,7 @@ class Lobby {
                 return this.rooms[key];
             }
         }
+        return -1; // can also try returning null
     }
     // 5. E)
     addRoom(id, name, image, messages) {
@@ -356,3 +414,67 @@ class Lobby {
         }
     }
 }
+
+/**
+ *  Assignment 3
+ */
+
+var Service = {
+    origin: window.location.origin,
+    getAllRooms: function() {
+        var promiseObj = new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", Service.origin + "/chat");
+            xhr.onload = function() { 
+                if (xhr.status === 200){
+                   console.log("getAllRooms: xhr done successfully");
+                   var resp = xhr.responseText;
+                   var respJson = JSON.parse(resp);
+                   resolve(respJson);
+                } 
+                else {
+                   reject(new Error(xhr.responseText)); // is this rejecting client side or server side error?
+                   console.log("getAllRooms: xhr failed");
+                }
+            } 
+            xhr.onerror = function(error) {
+                reject(new Error(error));
+                console.log("getAllRooms: promise rejected");
+            }
+            xhr.send();
+            console.log("getAllRooms: request sent succesfully");
+        });
+        return promiseObj;
+    },
+    addRoom: function(data) {
+        var promiseObj = new Promise(function(resolve, reject) {
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", Service.origin + "/chat");
+            // xhr.setRequestHeader("Accept", "application/json");
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.send(JSON.stringify(data));
+            console.log("addRoom: data sent?");
+
+            xhr.onload = function() { 
+                if (xhr.status === 200){
+                console.log("addRoom: xhr done successfully. data is " + data.name);
+                // this.lobby.addRoom(data.name, data.image);
+                var resp = xhr.responseText;
+                var respJson = JSON.parse(resp);
+                resolve(respJson);
+                } 
+                else {
+                reject(new Error(xhr.responseText)); // is this rejecting client side or server side error?
+                console.log("addRoom: xhr failed");
+                }
+            } 
+            xhr.onerror = function(error) {
+                reject(new Error(error));
+                console.log("addRoom: promise rejected");
+            }
+        });
+        return promiseObj;
+    },
+};
+
+
