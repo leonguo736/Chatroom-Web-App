@@ -3,9 +3,14 @@ const path = require('path');
 const fs = require('fs');
 const express = require('express');
 const { WebSocketServer } = require('ws');
+const Database = require('./Database.js');
 const ws = new require('ws');
 // import { WebSocketServer } from 'ws';
 // var WebSocketServer = new require('ws');
+
+var db = new Database("mongodb://127.0.0.1:27017", "cpen322-messenger");
+
+const messageBlockSize = 10;
 
 function logRequest(req, res, next){
 	console.log(`${new Date()}  ${req.ip} : ${req.method} ${req.path}`);
@@ -32,54 +37,64 @@ app.listen(port, () => {
 /**
  * Assignment 3
  */
-var chatrooms = [
-	{id: "0", name: "room0", image: "/assets/everyone-icon.png"},
-	{id: "1", name: "room1", image: "/assets/everyone-icon.png"},
-	{id: "2", name: "room2", image: "/assets/everyone-icon.png"},
-];
+// var chatrooms = [
+// 	{id: "0", name: "room0", image: "/assets/everyone-icon.png"},
+// 	{id: "1", name: "room1", image: "/assets/everyone-icon.png"},
+// 	{id: "2", name: "room2", image: "/assets/everyone-icon.png"},
+// ];
 
 var messages = {};
-for (let key in chatrooms) {
-	messages[chatrooms[key].id] = [];
-}
+db.getRooms().then((result) => {
+	for (var i = 0; i < result.length; i++) {
+		messages[result[i]._id] = [];
+	}
+});
 
 app.route('/chat')
-//   .all(function (req, res, next) {
-//     // runs for all HTTP verbs first
-//     // think of it as route specific middleware!
-//   })
   .get(function (req, res, next) {
-	var properRooms = [];
-	for (var i = 0; i < chatrooms.length; i++) {
-		var room = new Object;
-		room.id = chatrooms[i].id; 
-		room.name = chatrooms[i].name;
-		room.image = chatrooms[i].image;
-		room.messages = messages[chatrooms[i].id];
-		properRooms[i] = room;
-	}
-    res.send(properRooms);
+	db.getRooms().then((chatrooms) => {
+		// console.log(chatrooms);
+		var properRooms = [];
+		for (var i = 0; i < chatrooms.length; i++) {
+			// console.log(chatrooms[i]._id);
+			var room = {};
+			room._id = chatrooms[i]._id; 
+			room.name = chatrooms[i].name;
+			room.image = chatrooms[i].image;
+			room.messages = messages[chatrooms[i]._id];
+			properRooms.push(room);
+		}
+		res.send(properRooms);
+	});
   })
   .post(function (req, res, next) {
-	if (req.body.name != undefined) {
-		var newRoom = {};
-		newRoom["id"] = req.body.name;
-		newRoom["name"] = req.body.name;
-		if (req.body.image != undefined) {
-			newRoom["image"] = req.body.image;
+	db.addRoom(req.body).then(
+		(result) => {
+			console.log("@@@@@@@@@@@@@@@@@@@");
+			console.log(result);
+			messages[result._id] = [];
+			res.status(200).send(JSON.stringify(result));
+		},
+		(error) => res.status(400).send('Error: name not found')
+	);
+  })
+
+app.get('/chat/:room_id', (req, res) => {
+	db.getRoom(req.params.room_id).then((room) => {
+		if (room != null) {
+			res.send(room);
 		}
 		else {
-			newRoom["image"] = "/assets/everyone-icon.png";
+			res.status(404).send("Room " + req + " was not found");
 		}
-		chatrooms.push(newRoom);
-		messages[newRoom["id"]] = [];
-		// console.log("post: messages check: " + messages);
-		res.status(200).send(JSON.stringify(newRoom));
-	}
-	else {
-		res.status(400).send('Error: name not found');
-	}
-  })
+	});
+})
+
+app.get('/chat/:room_id/messages', (req, res) => {
+	db.getLastConversation(req.params.room_id, req.query.before).then((convo) => {
+		res.send(convo);
+	});
+})
 
 var broker = new ws.Server({ port: 8000 });
 
@@ -94,6 +109,20 @@ broker.on('connection', (ws) => {
 			}
 		}
 		messages[parsed.roomId].push(parsed);
+
+		if (messages[parsed.roomId].length >= messageBlockSize) {
+			var timestamp = Date.now();
+			var conversation = {
+				'room_id': parsed.roomId,
+				'timestamp': timestamp,
+				'messages': messages[parsed.roomId]
+			};
+			console.log("CALLING ADDCONVO WITH");
+			console.log(conversation);
+			db.addConversation(conversation).then(() => {
+				messages[parsed.roomId] = [];
+			});
+		}
 	});
 
 	// ws.on('close', function() {
@@ -101,5 +130,5 @@ broker.on('connection', (ws) => {
 	// });
 });
 
-cpen322.connect('http://52.43.220.29/cpen322/test-a3-server.js');
-cpen322.export(__filename, { app, chatrooms, messages, broker });
+cpen322.connect('http://52.43.220.29/cpen322/test-a4-server.js');
+cpen322.export(__filename, { app, messages, broker, db, messageBlockSize });

@@ -99,12 +99,12 @@ function main() {
             for (var i = 0; i < result.length; i++) {
                 var room = result[i];
                 // console.log("room id is " + room.id);
-                var existingRoom = lobby.getRoom(room.id);
+                var existingRoom = lobby.getRoom(room._id);
                 // console.log("key is " + existingRoom);
 
                 if (existingRoom == -1) { // room does not exist. 
                     // console.log("creating new room with id " + room.id);
-                    lobby.addRoom(room.id, room.name, room.image, room.messages);
+                    lobby.addRoom(room._id, room.name, room.image, room.messages);
                 }
                 else {
                     // console.log("updating room with id " + existingRoom.id );
@@ -167,8 +167,8 @@ class LobbyView {
             console.log("LobbyView: click event triggered");
             var result = Service.addRoom({name: input.value, image: "/assets/everyone-icon.png"});
             result.then(value=> {
-                lobby.addRoom(value.id, value.name, value.image);
-                console.log("LobbyView: " + value.id + value.name + value.image);
+                lobby.addRoom(value._id, value.name, value.image);
+                console.log("LobbyView: " + value._id + value.name + value.image);
             });
             
             input.value = "";
@@ -475,6 +475,31 @@ var Service = {
         });
         return promiseObj;
     },
+    getLastConversation: function(roomId, before) {
+        var promiseObj = new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", Service.origin + "/chat/" + roomId + "/messages?before=" + before);
+            xhr.onload = function() { 
+                if (xhr.status === 200){
+                   console.log("getLastConvo: xhr done successfully");
+                   var resp = xhr.responseText;
+                   var respJson = JSON.parse(resp);
+                   resolve(respJson);
+                } 
+                else {
+                   reject(new Error(xhr.responseText)); // is this rejecting client side or server side error?
+                   console.log("getLastConvo: xhr failed");
+                }
+            } 
+            xhr.onerror = function(error) {
+                reject(new Error(error));
+                console.log("getLastConvo: promise rejected");
+            }
+            xhr.send();
+            console.log("ggetLastConvo: request sent succesfully");
+        });
+        return promiseObj;
+    }
 };
 
 
