@@ -360,6 +360,8 @@ class Room {
         this.name = name;
         this.image = image;
         this.messages = messages;
+        this.canLoadConversation = true;
+        this.generator = makeConversationLoader(this);
     }
     // 5. B)
     addMessage(username, text) {
@@ -377,6 +379,18 @@ class Room {
         else {
             return;
         }
+    }
+    addConversation(conversation) {
+        // var newMessageArray = [];
+        for (var i = 0; i < conversation.messages.length; i++) {
+            this.messages.push(conversation.messages[i]);
+        }
+        // for (var i = 0; i < this.messages.length; i++) {
+        //     newMessageArray.push(this.messages[i]);
+        // }
+        // this.messages = newMessageArray;
+
+        this.onFetchConversation(conversation);
     }
 }
 
@@ -502,4 +516,23 @@ var Service = {
     }
 };
 
+// assignment 4
+function* makeConversationLoader(room) {
+    var recentBlock;
+    room.canLoadConversation = false;
 
+    var i = 0;
+    while(i < 5) {
+        Service.getLastConversation(room.id).then(
+            (result) => {
+                recentBlock = result;
+                room.addConversation(result);
+            },
+            (error) => {
+                
+            }
+        ); 
+        i++;
+    }  
+
+}
