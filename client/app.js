@@ -246,6 +246,7 @@ class ChatView {
         this.chatElem = this.elem.querySelector("div.message-list");
         this.inputElem = this.elem.querySelector("textarea");
         this.buttonElem = this.elem.querySelector("button");
+        // this.chatElem = this.elem.querySelector("wheel");
         // 8. D)
         this.room = null;
         this.buttonElem.addEventListener("click", () => {
@@ -361,7 +362,7 @@ class Room {
         this.image = image;
         this.messages = messages;
         this.canLoadConversation = true;
-        this.generator = makeConversationLoader(this);
+        this.getLastConversation = makeConversationLoader(this);
     }
     // 5. B)
     addMessage(username, text) {
