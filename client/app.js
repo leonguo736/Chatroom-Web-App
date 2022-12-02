@@ -17,7 +17,7 @@ function createDOM (htmlString){
  */
 // 8. A)
 var profile = new Object();
-profile.username = "Alice";
+// profile.username = "Alice";
 
 function main() {
     /**
@@ -33,18 +33,24 @@ function main() {
     socket.addEventListener("message", (e)=> {
         console.log("socket: e is " + e);
         var parsed = JSON.parse(e["data"]);
-        // var parsed = JSON.stringify(e["data"]);
-        // socket.send(parsed);
-        // console.log("socket: " + parsed.roomId);
+
+        // sanitize the message
+        // var sanitized_msg = sanitizeMessage(parsed.text);
+        // console.log("app sanitize: " + sanitized_msg);
 
         var room = lobby.getRoom(parsed.roomId);
-        room.addMessage(parsed.username, parsed.text);
+        room.addMessage(parsed.username, sanitized_msg);
     });
 
     // 3. D)
     var lobbyView = new LobbyView(lobby);
     var chatView = new ChatView(socket);
     var profileView = new ProfileView();
+
+    // assignment 5 task 6
+    Service.getProfile().then((result) => {
+        profile.username = result.username;
+    });
 
     /* 
      * Task 2 
@@ -270,7 +276,7 @@ class ChatView {
         // assignment 3 task4
         var jsonString = new Object;
         jsonString.roomId = this.room.id;
-        jsonString.username = profile.username;
+        // jsonString.username = profile.username;
         jsonString.text = text;
         this.socket.send(JSON.stringify(jsonString));
     }
@@ -282,6 +288,8 @@ class ChatView {
         for (let key in this.room.messages) {
             var msg = this.room.messages[key];
             var tempElem;
+            // var safe_msg = sanitizeMessage(msg.text);
+            // msg.text = safe_msg;
             if (msg.username == profile.username) {
                 tempElem = createDOM(
                     `<div class="message my-message">
@@ -302,6 +310,10 @@ class ChatView {
         }
         this.room.onNewMessage = (message) => {
             var tempElem;
+            console.log("payload: " + message.text);
+            var safe_msg = sanitizeMessage(message.text);
+            message.text = safe_msg;
+            console.log("onnewmsg: " + safe_msg);
             if (message.username == profile.username) {
                 tempElem = createDOM(
                     `<div class="message my-message">
@@ -367,9 +379,11 @@ class Room {
     // 5. B)
     addMessage(username, text) {
         if (text.trim().length > 0) {
+            var safe_msg = sanitizeMessage(text);
+
             var msg = new Object();
             msg.username = username;
-            msg.text = text;
+            msg.text = safe_msg;
             this.messages.push(msg);
             
             // 8. B)
@@ -514,6 +528,32 @@ var Service = {
             console.log("ggetLastConvo: request sent succesfully");
         });
         return promiseObj;
+    },
+    getProfile: function() {
+        console.log("get profile called");
+        var promiseObj = new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", Service.origin + "/profile");
+            xhr.onload = function() { 
+                if (xhr.status === 200){
+                   console.log("getProfile: xhr done successfully");
+                   var resp = xhr.responseText;
+                   var respJson = JSON.parse(resp);
+                   resolve(respJson);
+                } 
+                else {
+                   reject(new Error(xhr.responseText)); // is this rejecting client side or server side error?
+                   console.log("getProfile: xhr failed");
+                }
+            } 
+            xhr.onerror = function(error) {
+                reject(new Error(error));
+                console.log("getProfile: promise rejected");
+            }
+            xhr.send();
+            console.log("getProfile: request sent succesfully");
+        });
+        return promiseObj;
     }
 };
 
@@ -536,4 +576,13 @@ function* makeConversationLoader(room) {
         i++;
     }  
 
+}
+
+function sanitizeMessage(string) {
+	const map = {
+		'<': '&lt;',
+		'>': '&gt;',
+	};
+    const reg = /[<>]/ig;
+	return string.replace(reg, (match)=>(map[match]));
 }

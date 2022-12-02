@@ -34,7 +34,6 @@ Database.prototype.getRooms = function(){
 			/* TODO: read the chatrooms from `db`
 			 * and resolve an array of chatrooms */
 			db.collection("chatrooms").find({}).toArray((err, result) => {
-				// console.log(result);
 				resolve(result);
 			});
 			
@@ -99,7 +98,6 @@ Database.prototype.addRoom = function(room){
 
 			if (document.name != undefined) {
 				db.collection("chatrooms").insertOne(document).then((result) => {
-					console.log(document);
 					resolve(document);
 				});
 			}
@@ -119,20 +117,13 @@ Database.prototype.getLastConversation = function(room_id, before){
 				before = Date.now();
 			}
 			db.collection("conversations").find().toArray((err, result) => {
-				console.log("finding convo");
-				console.log(room_id);
-				console.log(result);
 				if ((result == null) || (result == undefined)) {
-					console.log("resolving null 1");
 					resolve(result);
 				}
 				else if (result.length == 0) {
-					console.log("resolving null 2");
 					resolve(result);
 				}
 				else {
-					// console.log("resolving good array");
-					// console.log(result);
 					var convo = result[0];
 					var timeSince = before - result[0].timestamp;
 					for (var i = 1; i < result.length; i++) {
@@ -163,16 +154,23 @@ Database.prototype.addConversation = function(conversation){
 				'messages': conversation.messages
 			}
 			if ((document.room_id == undefined) || (document.timestamp == undefined) ||(document.messages == undefined)) {
-				console.log(conversation);
-				console.log(document);
 				reject(new Error("at least one conversation field is undefined"));
 			}
 			else {
 				db.collection("conversations").insertOne(document).then((result) => {
-					console.log("added convo with id: " + document.room_id);
 					resolve(document);
 				});
 			}
+		})
+	)
+}
+
+Database.prototype.getUser = function(username){
+	return this.connected.then(db =>
+		new Promise((resolve, reject) => {
+			db.collection("users").findOne({ username: username }).then((user) => {
+				resolve(user);
+			})
 		})
 	)
 }
