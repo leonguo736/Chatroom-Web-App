@@ -578,6 +578,7 @@ function* makeConversationLoader(room) {
 
 }
 
+// reference: https://stackoverflow.com/questions/2794137/sanitizing-user-input-before-adding-it-to-the-dom-in-javascript
 function sanitizeMessage(string) {
 	const map = {
 		'<': '&lt;',

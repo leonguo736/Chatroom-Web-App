@@ -14,7 +14,6 @@ function SessionManager (){
 	// as anonymous functions (per each instance) and not as prototype methods
 	this.createSession = (response, username, maxAge = CookieMaxAgeMs) => {
 		/* To be implemented */
-        console.log("createSession: " + username);
         var tkn = crypto.randomBytes(20).toString('hex');
         var obj = new Object;
         obj.username = username;
@@ -47,11 +46,13 @@ function SessionManager (){
                 parsed_cookie = cookies[i];
                 if (!sessions[parsed_cookie]) {
                     next(new SessionError());
+                    return;
                 }
                 else {
                     request.username = sessions[parsed_cookie].username;
                     request.session = parsed_cookie;
                     next();
+                    return;
                 }
             }
         }

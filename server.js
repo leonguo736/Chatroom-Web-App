@@ -133,8 +133,6 @@ app.route('/logout')
 
 app.use((err, req, res, next) => {
 	if (err instanceof SessionManager.Error) {
-		console.log("err handler");
-		console.log("accept header: " + req.headers.accept);
 		if (req.headers.accept === 'application/json') {
 			console.log("sending 401");
 			res.status(401).send(err);
@@ -161,6 +159,7 @@ function isCorrectPassword(password, saltedHash) {
 	}
 }
 
+// reference: https://stackoverflow.com/questions/2794137/sanitizing-user-input-before-adding-it-to-the-dom-in-javascript
 function sanitizeMessage(string) {
 	const map = {
 		'<': '&lt;',
