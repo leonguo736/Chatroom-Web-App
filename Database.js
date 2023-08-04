@@ -31,8 +31,6 @@ function Database(mongoUrl, dbName){
 Database.prototype.getRooms = function(){
 	return this.connected.then(db =>
 		new Promise((resolve, reject) => {
-			/* TODO: read the chatrooms from `db`
-			 * and resolve an array of chatrooms */
 			db.collection("chatrooms").find({}).toArray((err, result) => {
 				resolve(result);
 			});
@@ -44,8 +42,6 @@ Database.prototype.getRooms = function(){
 Database.prototype.getRoom = function(room_id){
 	return this.connected.then(db =>
 		new Promise((resolve, reject) => {
-			/* TODO: read the chatroom from `db`
-			 * and resolve the result */
 			try {
 				var id = ObjectId(room_id);
 			}
@@ -54,7 +50,6 @@ Database.prototype.getRoom = function(room_id){
 			}
 			var room = db.collection("chatrooms").findOne({ _id: id });
 			resolve(room);
-			// how to consider string case?
 		})
 	)
 }
@@ -62,8 +57,6 @@ Database.prototype.getRoom = function(room_id){
 Database.prototype.addRoom = function(room){
 	return this.connected.then(db => 
 		new Promise((resolve, reject) => {
-			/* TODO: insert a room in the "chatrooms" collection in `db`
-			 * and resolve the newly added room */
 			if (room.messages == undefined) {
 				var messages = [];
 			}
@@ -111,8 +104,6 @@ Database.prototype.addRoom = function(room){
 Database.prototype.getLastConversation = function(room_id, before){
 	return this.connected.then(db =>
 		new Promise((resolve, reject) => {
-			/* TODO: read a conversation from `db` based on the given arguments
-			 * and resolve if found */
 			if(before == undefined) {
 				before = Date.now();
 			}
@@ -146,8 +137,6 @@ Database.prototype.getLastConversation = function(room_id, before){
 Database.prototype.addConversation = function(conversation){
 	return this.connected.then(db =>
 		new Promise((resolve, reject) => {
-			/* TODO: insert a conversation in the "conversations" collection in `db`
-			 * and resolve the newly added conversation */
 			var document = {
 				'room_id': conversation.room_id,
 				'timestamp': conversation.timestamp,

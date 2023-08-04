@@ -3,17 +3,11 @@ const crypto = require('crypto');
 class SessionError extends Error {};
 
 function SessionManager (){
-	// default session length - you might want to
-	// set this to something small during development
 	const CookieMaxAgeMs = 600000;
 
-	// keeping the session data inside a closure to keep them protected
 	const sessions = {};
 
-	// might be worth thinking about why we create these functions
-	// as anonymous functions (per each instance) and not as prototype methods
 	this.createSession = (response, username, maxAge = CookieMaxAgeMs) => {
-		/* To be implemented */
         var tkn = crypto.randomBytes(20).toString('hex');
         var obj = new Object;
         obj.username = username;
@@ -27,14 +21,12 @@ function SessionManager (){
 	};
 
 	this.deleteSession = (request) => {
-		/* To be implemented */
         delete sessions[request.session];
         delete request.username;
         delete request.session;
 	};
 
 	this.middleware = (request, response, next) => {
-		/* To be implemented */
         var cookie = request.headers.cookie;
         if (!cookie) {
             next(new SessionError());
@@ -58,8 +50,6 @@ function SessionManager (){
         }
 	};
 
-	// this function is used by the test script.
-	// you can use it if you want.
 	this.getUsername = (token) => ((token in sessions) ? sessions[token].username : null);
 };
 
